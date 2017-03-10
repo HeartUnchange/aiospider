@@ -120,7 +120,6 @@ class Spider :
     async def __start(self):
         workers = [asyncio.Task(self.load(), loop=self.loop)
                    for _ in range(self.config["concurrent"])]
-
         await self.pending.join()
         for w in workers:
             w.cancel()
