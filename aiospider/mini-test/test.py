@@ -3,7 +3,7 @@
 #import os
 #os.environ['PYTHONASYNCIODEBUG'] = '1'
 
-from .. import Spider
+from aiospider import Spider
 from urllib.parse import urljoin
 
 from pyquery import PyQuery
