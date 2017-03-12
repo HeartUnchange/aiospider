@@ -9,40 +9,17 @@ import sys
 from functools import partial
 from urllib.parse import urljoin
 from itertools import zip_longest
+from collections import namedtuple
 
 import aiohttp
 
-
-class Request:
-    def __init__(self, method, url, callback, **kwargs):
-        self.method = method
-        self.url = url
-        self.callback = callback
-        self.params = None
-        self.data = None
-        self.headers = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
+DEFAULT_HEADER = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
                         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                         }
-        self.skip_auto_headers = None
-        self.auth = None
-        self.allow_redirects = True
-        self.max_redirects = 10
-        self.encoding = 'utf-8'
-        self.proxy = None
-        self.proxy_auth = None
-        self.timeout = 3
-        self.update(**kwargs)
 
-    def update(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def to_dict(self):
-        result = self.__dict__.copy()
-        result.pop("method")
-        result.pop("url")
-        result.pop("callback")
-        return result
-
+_Request = namedtuple("Request",["method","url","callback","header","data"])
+def Request(method,url,callback,header=DEFAULT_HEADER,data=None):
+    return _Request(method,url,callback,header,data)
 
 class Spider:
     '''
@@ -96,7 +73,6 @@ class Spider:
         if not self.config["allowDuplicates"]:
             self.visited.add(url)
         request = Request(method, url, callback)
-        request.update(**kwargs)
         self.pending.put_nowait(request)
         self.log("ADD", url)
 
@@ -110,7 +86,7 @@ class Spider:
         except asyncio.CancelledError:
             pass
 
-    async def __request(self, request: Request):
+    async def __request(self, request: _Request):
         #print("request url: %s"%request.url)
         async with self.session.request(request.method, request.url) as resp:
             # self.log("Parse",resp.url)

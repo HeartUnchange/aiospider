@@ -4,5 +4,5 @@ setup(name='aiospider',
       author='HeartUnchange',
       author_email='haoxiangzhao@outlook.com',
       version='0.0.1',
-      packages=['aiospider',"aiospider.mini-test"],
+      packages=['aiospider',"examples"],
       )
