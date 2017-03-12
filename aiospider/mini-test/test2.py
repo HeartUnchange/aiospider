@@ -13,6 +13,9 @@ from os.path import splitext,basename,exists,isdir,join
 BASE_URL = "http://face.ersansan.cn/collection/{tid}?r_from=miniapp"
 
 def confirmDir(path):
+    '''
+    ??? why not use exists ???
+    '''
     try:
         os.mkdir(path)
     except FileExistsError:
@@ -28,15 +31,14 @@ with Spider() as ss:
         if not category :
             return
         ss.log(str(js.get("Count", 0)), response.url)
-        confirmDir(category)
-        print(response.url + " have " + str(len( js.get("picList",[]) )))
+        confirmDir(category)        
         for pic in js.get("picList",[]):
             src = pic.get("link","")
             eid = pic.get("eid","")
             if not src : continue
             name = str(eid) + splitext(src)[1] if eid else basename(src)
             dst = join(os.curdir,category,name)
-            print(dst)
+            #print(dst)
             await ss.download(src,dst)
 
     ss.start([BASE_URL.format(tid=i) for i in range(0,240)],[parse_category,])
