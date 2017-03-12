@@ -8,6 +8,7 @@ import logging
 import sys
 from functools import partial
 from urllib.parse import urljoin
+from itertools import zip_longest
 
 import aiohttp
 
@@ -47,7 +48,7 @@ class Spider :
 
     default_config = {
         # How many requests can be run in parallel
-        "concurrent" : 5,
+        "concurrent" : 10,
         # How long to wait after each request
         "delay"      : 0,
         # A stream to where internal logs are sent, optional
@@ -120,9 +121,11 @@ class Spider :
     async def __start(self):
         workers = [asyncio.Task(self.load(), loop=self.loop)
                    for _ in range(self.config["concurrent"])]
+
         await self.pending.join()
         for w in workers:
             w.cancel()
-    def start(self,url,callback):
-        self.add_request(url,callback)
+    def start(self,urls,callbacks):
+        for url,callback in zip_longest(urls,callbacks,fillvalue=callbacks[len(callbacks)-1]):
+            self.add_request(url,callback)
         self.loop.run_until_complete(self.__start())

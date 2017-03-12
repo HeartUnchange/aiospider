@@ -7,8 +7,8 @@ But because of the difference between python and javascript, I can't convert `sp
 
 Fortunately I found this [crawler-demo](https://github.com/aosabook/500lines/tree/master/crawler). It just uses a list of which length exactly is the maximum concurrent number. Just look like this:
 ```python
-workers = [asyncio.Task(self.work(), loop=self.loop) for _ in range(self.max_tasks)]
-await self.q.join()
+workers = [asyncio.Task(work(), loop=loop) for _ in range(max_tasks)]
+await Queue.join()
 for w in workers:
     w.cancel()
 ```
