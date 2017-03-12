@@ -8,10 +8,12 @@ from urllib.parse import urljoin
 
 from pyquery import PyQuery
 
-from os.path import splitext,basename
+from os.path import splitext, basename
 
-def url_resolve(_from,to):
-    return urljoin(_from,to)
+
+def url_resolve(_from, to):
+    return urljoin(_from, to)
+
 
 with Spider() as ss:
     async def parse_page(response):
@@ -19,20 +21,24 @@ with Spider() as ss:
         img = pq('#ArticleId22 > p > img')
         src = img.attr('src')
         name = img.attr('alt')
-        await ss.download(src,name+splitext(src)[1])
+        await ss.download(src, name + splitext(src)[1])
         for p in pq('body > div.wrap > div.tag-page.l.oh > div.NewPages > ul > li'):
             element = PyQuery(p)
-            ss.add_request(url_resolve(response.url, element.attr("href")), parse_page)
+            ss.add_request(url_resolve(
+                response.url, element.attr("href")), parse_page)
+
     async def parse_links(response):
         pq = PyQuery(await response.text())
         for p in pq('body > div.wrap > div.TypeList > ul > li > a'):
             element = PyQuery(p)
             print(element.attr("href"))
-            ss.add_request(url_resolve(response.url,element.attr("href")),parse_page)
+            ss.add_request(url_resolve(
+                response.url, element.attr("href")), parse_page)
 
         for p in pq('body > div.wrap > div.NewPages > ul > li > a'):
             element = PyQuery(p)
             print(element.attr("href"))
-            ss.add_request(url_resolve(response.url,element.attr("href")), parse_links)
+            ss.add_request(url_resolve(
+                response.url, element.attr("href")), parse_links)
 
-    ss.start('https://www.umei.cc/meinvtupian/',parse_links)
+    ss.start('https://www.umei.cc/meinvtupian/', parse_links)

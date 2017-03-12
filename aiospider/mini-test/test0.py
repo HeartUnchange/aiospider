@@ -8,5 +8,6 @@ with Spider() as ss:
         callback
         The response is just an aiohttp.ClientResponse object now.
         '''
-        print("request url is %s, response status is %d"%(response.url,response.status))
-    ss.start('https://www.python.org/',parse_page)
+        print("request url is %s, response status is %d" %
+              (response.url, response.status))
+    ss.start('https://www.python.org/', parse_page)
