@@ -47,6 +47,9 @@ class Spider:
     }
 
     def __init__(self, **kwargs):
+        '''
+        config default
+        '''
         self.config = Spider.default_config.copy()
 
         self.config.update(kwargs.get("config", {}))
@@ -66,6 +69,7 @@ class Spider:
         '''
          The methods contained here will be called before any requests.
          For example,if spider need to login, you may need provide login method.
+         The variable `will_continue` stands for whether this spider continue or not after all `before_start_funcs` called.
         '''
         self.before_start_funcs = []
         self.will_continue = True
@@ -74,21 +78,17 @@ class Spider:
          For example,if spider need to logout, you may need provide logout method.
         '''
         self.after_crawl_funcs = []
-
+        '''
+        spider's logger
+        '''
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        '''
-        state
-        '''
-        # Is there a queue for downloading necessarily? Now, all downloading are called by request's callback.
-        # Is it possible that one or more downloading tasks are called
-        # directly?
         self.pending = asyncio.Queue()
         # downloading concurrent should not be too large.
         self.download_pending = TaskQueue(
             maxsize=self.config["download_concurrent"])
-        self.active = []
         self.visited = set()
+        # you cannot call method `start` twice.
         self.running = False
 
     def __enter__(self):
@@ -121,8 +121,17 @@ class Spider:
         self.log("ADD", url)
 
     def add_requests(self, urls, callbacks):
+        '''
+        add many targets and callback once.
+        if targets are more than callbacks, None will be used to fillup.
+        if targets are less than callbacks, callbacks will be cut.
+        '''
         if isinstance(urls, (list, tuple)) and isinstance(callbacks, (list, tuple)):
-            for url, callback in zip_longest(urls, callbacks, fillvalue=callbacks[len(callbacks) - 1]):
+            if len(urls) >= len(callbacks):
+                pass
+            else:
+                callbacks = callbacks[:len(urls)]
+            for url, callback in zip_longest(urls, callbacks):
                 self.add_request(url, callback)
         elif isinstance(urls, str):
             self.add_request(urls, callbacks)
@@ -176,7 +185,7 @@ class Spider:
             async with self.session.request(request.method, request.url) as resp:
                 '''
                  if callback is a coroutine-function, the await is necessary.
-                 if not, loop.call_soon is better.
+                 if not, call_soon_threadsafe is better.
                  But why not coroutine ?
                 '''
                 if asyncio.iscoroutinefunction(callback):
@@ -200,7 +209,6 @@ class Spider:
         workers = [asyncio.Task(self.load(), loop=self.loop)
                    for _ in range(self.config["concurrent"])]
         await self.pending.join()
-        print("waiting for download")
         await self.download_pending.join()
         for w in workers:
             w.cancel()

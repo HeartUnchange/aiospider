@@ -2,7 +2,9 @@
 #-*- coding:utf-8 -*-
 #import os
 #os.environ['PYTHONASYNCIODEBUG'] = '1'
-
+'''
+This example will show you how to add targets while crawling.
+'''
 from aiospider import Spider
 from urllib.parse import urljoin
 

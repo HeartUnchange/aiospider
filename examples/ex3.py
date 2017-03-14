@@ -1,6 +1,11 @@
 #!/usr/bin/python3
 #-*-coding:utf8-*-
 
+'''
+This example will show you how to use `before_start` to login.
+This example need you have an account for `www.zhihu.com`.
+'''
+
 import aiohttp
 from aiospider import Spider
 from functools import partial

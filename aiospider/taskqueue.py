@@ -3,8 +3,11 @@
 
 '''
 Asyncio.Queue's task_done only reduce the number of unfinished tasks.
-This spider need a queue which used to contain running-task. So it need one method to remove finished tasks.
-So asyncio.Queue is not suitable. Burt inheritance failed me. So I just copy asyncio.Queue and do some changes.
+This spider need a queue which used to contain running-task.
+It need one method to remove finished tasks.So asyncio.Queue is not suitable.
+The big differrence between asyncio.Queue and TaskQueue is the method `task_done`.
+ After one task is finished, TaskQueue will automaticlly romove it from TaskQueue with its uuid.
+But inheritance failed me. So I just copy asyncio.Queue and do some changes.
 '''
 import collections
 import asyncio
@@ -29,8 +32,6 @@ class TaskQueue:
 
         # Futures.
         self._putters = collections.deque()
-
-        self._running_tasks = 0
         self._finished = locks.Event(loop=self._loop)
         self._finished.set()
         self._init(maxsize)
@@ -39,6 +40,10 @@ class TaskQueue:
         self._queue = collections.OrderedDict()
 
     def _put(self, task: _Task):
+        '''
+        Putt task in queue and start the task meanwhile.
+        After the task is finished, `task_done` will be called.
+        '''
         async def _call(UUID=task.UUID):
             await task.task(task.args)
             self.task_done(str(UUID))
@@ -65,12 +70,8 @@ class TaskQueue:
         result = 'maxsize={!r}'.format(self._maxsize)
         if getattr(self, '_queue', None):
             result += ' _queue={!r}'.format(dict(self._queue))
-        if self._getters:
-            result += ' _getters[{}]'.format(len(self._getters))
         if self._putters:
             result += ' _putters[{}]'.format(len(self._putters))
-        if self._unfinished_tasks:
-            result += ' tasks={}'.format(self._unfinished_tasks)
         return result
 
     def qsize(self):
@@ -130,10 +131,13 @@ class TaskQueue:
         self._finished.clear()
 
     def task_done(self, tag):
+        '''
+        remove task that the tag stands for from the queue.
+        :param tag : task's uuid
+        '''
         if self.qsize() <= 0:
             raise ValueError('task_done(**) called too many times')
         if not tag in self._queue:
-            print(tag)
             raise KeyError("This task isn't in this queue")
         self._queue.pop(tag)
         self._wakeup_next(self._putters)
