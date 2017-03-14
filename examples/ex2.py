@@ -41,4 +41,4 @@ with Spider() as ss:
             ss.add_request(url_resolve(
                 response.url, element.attr("href")), parse_links)
 
-    ss.start('https://www.umei.cc/meinvtupian/', parse_links)
+    ss.start(['https://www.umei.cc/meinvtupian/', ], [parse_links, ])
