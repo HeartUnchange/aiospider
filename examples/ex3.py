@@ -3,7 +3,7 @@
 
 '''
 This example will show you how to use `before_start` to login.
-This example need you have an account for `www.zhihu.com`.
+To run this example  you need a Zhihu account.
 '''
 
 import aiohttp
