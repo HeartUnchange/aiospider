@@ -1,4 +1,4 @@
-#AioSpider
+# AioSpider
 
 This is a little toy I write when I learn python's asynchron.<br>
 By reference to the nodejs package [node-spider](https://github.com/flesler/node-spider), I write this "aiospider".They have similar apis.
@@ -13,12 +13,12 @@ for w in workers:
     w.cancel()
 ```
 
-##Usage:
+## Usage:
 ```
     python3 setup.py install
     pip install -r requirements.txt
 ```
-##Example:
+## Example:
 ```python
 from aiospider import Spider
 with Spider() as ss:
@@ -33,3 +33,8 @@ with Spider() as ss:
 my result : request url is https://www.python.org/, response status is 200
 '''
 ```
+# TODO
+1. request and callback exception handle
+2. <del> taskqueue call task with multi-parameter </del>
+3. wrap request , add proxy, etc.
+4. wrap response

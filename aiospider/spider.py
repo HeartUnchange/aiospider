@@ -83,6 +83,12 @@ class Spider:
         '''
         self.logger = logging.getLogger(self.__class__.__name__)
 
+        '''
+        The reasons that only sipder's download_pending uses TaskQueue are:
+         1. TaskQueue is still not stable.
+         2. When there are too many request waited to send, it has to keep many contexts for each waiting request 
+            including the method request_with_callback. So the request queue still use asyncio.Queue.
+        '''
         self.pending = asyncio.Queue()
         # downloading concurrent should not be too large.
         self.download_pending = TaskQueue(
@@ -180,7 +186,8 @@ class Spider:
             pass
 
     async def request_with_callback(self, request: _Request, callback=None):
-        if not callback : callback = request.callback
+        if not callback:
+            callback = request.callback
         if callable(callback):
             async with self.session.request(request.method, request.url) as resp:
                 '''
@@ -205,8 +212,23 @@ class Spider:
         await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
         self.log("DOWNLOADING", src + dst)
 
+    def add_download(self, src, dst):
+        '''
+        add download task in  a synchronous way.
+        '''
+        async def save(resp, dst=dst):
+            with open(dst, "wb") as fd:
+                while True:
+                    chunk = await resp.content.read()
+                    if not chunk:
+                        break
+                    fd.write(chunk)
+            self.log("Downloaded", dst)
+        self.download_pending.add_task(
+            makeTask(self.request_with_callback, Request("GET", src, callback=save)))
+
     async def __start(self):
-        workers = [asyncio.Task(self.load(), loop=self.loop)
+        workers = [asyncio.ensure_future(self.load(), loop=self.loop)
                    for _ in range(self.config["concurrent"])]
         await self.pending.join()
         await self.download_pending.join()
@@ -221,6 +243,7 @@ class Spider:
 
         self.add_requests(urls, callbacks)
         self.loop.run_until_complete(self.try_trigger_before_start_functions())
+        # before_start_functions can change will_continue vaule.
         if self.will_continue:
             self.loop.run_until_complete(self.__start())
         self.running = False

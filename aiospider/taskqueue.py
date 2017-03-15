@@ -14,11 +14,13 @@ import asyncio
 import uuid
 from asyncio import events, locks, QueueFull
 
-_Task = collections.namedtuple("Task", ["UUID", "task", "args"])
+_Task = collections.namedtuple(
+    "Task", ["UUID", "task", "args", "kwargs", "exception_handle"])
 
 
-def makeTask(task, args):
-    return _Task(uuid.uuid4(), task, args)
+def makeTask(task, *args, **kwargs):
+    exception_handle = kwargs.pop("exception_handle", None)
+    return _Task(uuid.uuid4(), task, args, kwargs, exception_handle)
 
 
 class TaskQueue:
@@ -41,13 +43,23 @@ class TaskQueue:
 
     def _put(self, task: _Task):
         '''
-        Putt task in queue and start the task meanwhile.
+        Put task in queue and start the task meanwhile.
         After the task is finished, `task_done` will be called.
         '''
         async def _call(UUID=task.UUID):
-            await task.task(task.args)
-            self.task_done(str(UUID))
-        
+            try:
+                if asyncio.iscoroutinefunction(task.task):
+                    await task.task(*task.args, **task.kwargs)
+                else:
+                    task.task(*task.args, **task.kwargs)
+            except Exception as e:
+                if task.exception_handle and callable(task.exception_handle):
+                    task.exception_handle(e)
+                else:
+                    print(str(e))
+            finally:
+                self.task_done(str(UUID))
+
         self._queue.update(
             {str(task.UUID): asyncio.ensure_future(_call())})
 
@@ -120,6 +132,12 @@ class TaskQueue:
                 raise
         return self.put_nowait(task)
 
+    def add_task(self, task: _Task):
+        '''
+        You can add task in a synchronous way.
+        '''
+        asyncio.run_coroutine_threadsafe(self.put(task), loop=self._loop)
+
     def put_nowait(self, task: _Task):
         """Put an item into the queue without blocking.
 
@@ -139,7 +157,11 @@ class TaskQueue:
             raise ValueError('task_done(**) called too many times')
         if not tag in self._queue:
             raise KeyError("This task isn't in this queue")
+        # do something you like here, you can change `pop` to other methods you want.
+        # for example ,you can remove the task finished and then send a signal
+        # to a recorder.
         self._queue.pop(tag)
+
         self._wakeup_next(self._putters)
         if self.qsize() == 0:
             self._finished.set()
