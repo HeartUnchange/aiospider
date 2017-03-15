@@ -12,7 +12,10 @@ But inheritance failed me. So I just copy asyncio.Queue and do some changes.
 import collections
 import asyncio
 import uuid
+import logging  # may cause duplicated log
 from asyncio import events, locks, QueueFull
+import sys
+import traceback
 
 _Task = collections.namedtuple(
     "Task", ["UUID", "task", "args", "kwargs", "exception_handle"])
@@ -38,6 +41,14 @@ class TaskQueue:
         self._finished.set()
         self._init(maxsize)
 
+        '''
+        TaskQueue's logger
+        '''
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def log(self, lvl, msg):
+        self.logger.log(lvl, msg)
+
     def _init(self, maxsize):
         self._queue = collections.OrderedDict()
 
@@ -54,9 +65,19 @@ class TaskQueue:
                     task.task(*task.args, **task.kwargs)
             except Exception as e:
                 if task.exception_handle and callable(task.exception_handle):
-                    task.exception_handle(e)
+                    exc_info = sys.exc_info()
+                    self.log(logging.WARN, "Error happened in task {uuid}, try with exception_handle.".format(
+                        uuid=task.UUID))
+                    try:
+                        task.exception_handle(e)
+                    except:
+                        self.log(logging.ERROR, "Error happened in task {uuid}, but exception_handle not work.\n{old_error} ".format(
+                            old_error="".join(traceback.format_exception(*exc_info)), uuid=task.UUID))
+                    finally:
+                        del exc_info  # del is necessary ?
                 else:
-                    print(str(e))
+                    self.log(logging.ERROR, "Error happened in task {uuid}, but NO handler set.\n{error}".format(
+                        error=traceback.format_exc(), uuid=task.UUID))
             finally:
                 self.task_done(str(UUID))
 

@@ -17,13 +17,15 @@ def exe(a):
     print("args : " + str(a))
     raise OSError("Hi, I'm an exception~")
 
+
 loop = asyncio.get_event_loop()
 taskqueue = TaskQueue(loop=loop)
+
 
 async def main(queue, loop=None):
     # task with exception_handle
     await queue.put(makeTask(exe, "haha", exception_handle=lambda e: print("Found an exception.")))
-    # add task in a synchronous way without exception_handle, 
+    # add task in a synchronous way without exception_handle,
     queue.add_task(makeTask(exe, "haha", ))
     await queue.join()
 

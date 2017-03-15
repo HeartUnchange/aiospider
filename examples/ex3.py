@@ -20,7 +20,8 @@ with Spider() as ss:
         # not suitable, will changed later
         async with spider.session.request("get", ZHIHU_INDEX) as resp:
             pq = PyQuery(await resp.text())
-            _xsrf = PyQuery(pq('input[type="hidden"][name="_xsrf"]')[0]).attr("value")
+            _xsrf = PyQuery(pq('input[type="hidden"][name="_xsrf"]')[
+                            0]).attr("value")
         password = ""
         email = ""
         async with spider.session.request("POST", ZHIHU_LOGIN, data={"email": email, "password": password, "_xsrf": _xsrf}) as resp:

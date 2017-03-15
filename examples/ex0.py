@@ -16,10 +16,12 @@ with Spider() as ss:
         '''
         print("request url is %s, response status is %d" %
               (response.url, response.status))
+
     async def parse_page_2(response):
         '''
         callback function also support coroutine function.
         '''
         print("request url is %s, response status is %d" %
               (response.url, response.status))
-    ss.start(['https://www.python.org/',"https://github.com/" ], [parse_page_1, parse_page_2])
+    ss.start(['https://www.python.org/', "https://github.com/"],
+             [parse_page_1, parse_page_2])

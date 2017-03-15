@@ -33,13 +33,11 @@ with Spider() as ss:
         pq = PyQuery(await response.text())
         for p in pq('body > div.wrap > div.TypeList > ul > li > a'):
             element = PyQuery(p)
-            print(element.attr("href"))
             ss.add_request(url_resolve(
                 response.url, element.attr("href")), parse_page)
 
         for p in pq('body > div.wrap > div.NewPages > ul > li > a'):
             element = PyQuery(p)
-            print(element.attr("href"))
             ss.add_request(url_resolve(
                 response.url, element.attr("href")), parse_links)
 

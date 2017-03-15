@@ -13,13 +13,14 @@ from .taskqueue import TaskQueue, makeTask
 
 import aiohttp
 
+LOGGING_FORMAT = '%(asctime)-15s [%(name)s] %(levelname)s  %(message)s'
 DEFAULT_HEADER = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
                   'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                   }
-
-
 _Request = namedtuple(
     "Request", ["method", "url", "header", "data", "callback"])
+
+logging.basicConfig(format=LOGGING_FORMAT)
 
 
 def Request(method, url, header=DEFAULT_HEADER, data=None, callback=None):
@@ -30,6 +31,12 @@ class Spider:
     '''
     spider class
     '''
+    # Log levels,
+    CRITICAL = logging.CRITICAL
+    ERROR = logging.ERROR
+    WARNING = logging.WARNING
+    INFO = logging.INFO
+    DEBUG = logging.DEBUG
 
     default_config = {
         # How many requests can be run in parallel
@@ -43,7 +50,7 @@ class Spider:
         # Re - visit visited URLs, false by default
         "allowDuplicates": False,
         #
-        "chunk_size": 1024
+        "chunk_size": 1024,
     }
 
     def __init__(self, **kwargs):
@@ -106,12 +113,12 @@ class Spider:
         if not self.loop.is_closed():
             self.loop.close()
 
-    def log(self, status, url):
-        self.logger.warning(status + " " + url)
+    def log(self, lvl, msg):
+        self.logger.log(lvl, msg)
 
     def add_request(self, url, callback, method="GET", **kwargs):
         '''
-         Add request wo queue.
+        Add request wo queue.
         :param url: request's url
         :param callback: which will be called after request finished.
         :param method: request's method
@@ -124,7 +131,7 @@ class Spider:
             self.visited.add(url)
         request = Request(method, url, callback=callback)
         self.pending.put_nowait(request)
-        self.log("ADD", url)
+        self.log(logging.INFO, "Add url: {} to queue.".format(url))
 
     def add_requests(self, urls, callbacks):
         '''
@@ -179,7 +186,8 @@ class Spider:
         try:
             while True:
                 request = await self.pending.get()
-                self.log("Loading", request.url)
+                self.log(logging.INFO,
+                         "Loading url: {} from queue.".format(request.url))
                 await self.request_with_callback(request, request.callback)
                 self.pending.task_done()
         except asyncio.CancelledError:
@@ -199,8 +207,12 @@ class Spider:
                     await callback(resp)
                 else:
                     self.loop.call_soon_threadsafe(callback, resp)
+        else:
+            self.log(logging.WARNING, "Callback for request [{method}] `{url}` is not callable. Request is ignored.".format(
+                url=request.url, method=request.method))
 
     async def download(self, src, dst):
+        '''
         async def save(resp, dst=dst):
             with open(dst, "wb") as fd:
                 while True:
@@ -208,9 +220,11 @@ class Spider:
                     if not chunk:
                         break
                     fd.write(chunk)
-            self.log("Downloaded", dst)
+            self.log(logging.INFO, "Target `{src}` download to {dst}".format(src=resp.url, dst=dst))
+        self.log(logging.INFO, "Add download task : {src}".format(src=src))
         await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
-        self.log("DOWNLOADING", src + dst)
+        '''
+        self.add_download(src, dst)
 
     def add_download(self, src, dst):
         '''
@@ -223,14 +237,19 @@ class Spider:
                     if not chunk:
                         break
                     fd.write(chunk)
-            self.log("Downloaded", dst)
+            self.log(logging.INFO, "Target `{src}` download to {dst}".format(
+                src=resp.url, dst=dst))
+        self.log(logging.INFO, "Add download task : {src}".format(src=src))
         self.download_pending.add_task(
             makeTask(self.request_with_callback, Request("GET", src, callback=save)))
 
     async def __start(self):
         workers = [asyncio.ensure_future(self.load(), loop=self.loop)
                    for _ in range(self.config["concurrent"])]
+        self.log(
+            logging.INFO, "Spider has been started. Waiting for all requests and download tasks to finish.")
         await self.pending.join()
+        self.log(logging.INFO, "Requests have finished. Waiting for download task.")
         await self.download_pending.join()
         for w in workers:
             w.cancel()
@@ -245,6 +264,12 @@ class Spider:
         self.loop.run_until_complete(self.try_trigger_before_start_functions())
         # before_start_functions can change will_continue vaule.
         if self.will_continue:
+            self.log(logging.INFO, "Spider Start.")
             self.loop.run_until_complete(self.__start())
+        else:
+            self.log(logging.WARN,
+                     "Spider canceled by the last `before_start_function`.")
         self.running = False
+        self.log(logging.INFO, "All tasks done.Spider starts to shutdown.")
         self.loop.run_until_complete(self.try_trigger_after_crawl_functions())
+        self.log(logging.INFO, "Spider shutdown.")

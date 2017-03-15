@@ -44,11 +44,12 @@ with Spider() as ss:
         confirmDir(category)
         # emojis contained by `picList`
         for pic in js.get("picList", []):
-            src = pic.get("link", "") # emoji's download link
-            eid = pic.get("eid", "") # emoji's id
+            src = pic.get("link", "")  # emoji's download link
+            eid = pic.get("eid", "")  # emoji's id
             if not src:
                 continue
-            name = str(eid) + splitext(src)[1] if eid else basename(src) # name for saving
+            # name for saving
+            name = str(eid) + splitext(src)[1] if eid else basename(src)
             dst = join(os.curdir, category, name)
             await ss.download(src, dst)
 
