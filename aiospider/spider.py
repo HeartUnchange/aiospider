@@ -4,23 +4,24 @@
 main part
 '''
 import asyncio
-import logging
+
 import sys
 from itertools import zip_longest
 from collections import namedtuple
-
-from .taskqueue import TaskQueue, makeTask
+import traceback
 
 import aiohttp
 
-LOGGING_FORMAT = '%(asctime)-15s [%(name)s] %(levelname)s  %(message)s'
+from .taskqueue import TaskQueue, makeTask
+from .log import logging
+
 DEFAULT_HEADER = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',
                   'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
                   }
 _Request = namedtuple(
     "Request", ["method", "url", "header", "data", "callback"])
 
-logging.basicConfig(format=LOGGING_FORMAT)
+
 
 
 def Request(method, url, header=DEFAULT_HEADER, data=None, callback=None):
@@ -197,16 +198,19 @@ class Spider:
         if not callback:
             callback = request.callback
         if callable(callback):
-            async with self.session.request(request.method, request.url) as resp:
-                '''
-                 if callback is a coroutine-function, the await is necessary.
-                 if not, call_soon_threadsafe is better.
-                 But why not coroutine ?
-                '''
-                if asyncio.iscoroutinefunction(callback):
-                    await callback(resp)
-                else:
-                    self.loop.call_soon_threadsafe(callback, resp)
+            try:
+                async with self.session.request(request.method, request.url) as resp:
+                    '''
+                    if callback is a coroutine-function, the await is necessary.
+                    if not, call_soon_threadsafe is better.
+                    But why not coroutine ?
+                    '''
+                    if asyncio.iscoroutinefunction(callback):
+                        await callback(resp)
+                    else:
+                        self.loop.call_soon_threadsafe(callback, resp)
+            except Exception as e:
+                self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(error=traceback.format_exc(),url=request.url, method=request.method))
         else:
             self.log(logging.WARNING, "Callback for request [{method}] `{url}` is not callable. Request is ignored.".format(
                 url=request.url, method=request.method))

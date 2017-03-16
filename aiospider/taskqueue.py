@@ -12,10 +12,11 @@ But inheritance failed me. So I just copy asyncio.Queue and do some changes.
 import collections
 import asyncio
 import uuid
-import logging  # may cause duplicated log
 from asyncio import events, locks, QueueFull
 import sys
 import traceback
+
+from .log import logging
 
 _Task = collections.namedtuple(
     "Task", ["UUID", "task", "args", "kwargs", "exception_handle"])
