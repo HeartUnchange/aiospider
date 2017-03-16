@@ -34,7 +34,7 @@ my result : request url is https://www.python.org/, response status is 200
 '''
 ```
 # TODO
-1. request and callback exception handle
+1. <del> request and callback exception handle <del>
 2. <del> taskqueue call task with multi-parameter </del>
 3. wrap request , add proxy, etc.
 4. wrap response

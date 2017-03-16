@@ -54,4 +54,4 @@ with Spider() as ss:
             await ss.download(src, dst)
 
     ss.start([BASE_URL.format(tid=i)
-              for i in range(0, 240)], [parse_category, ])
+              for i in range(0, 240)], [parse_category]*240)

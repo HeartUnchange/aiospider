@@ -80,6 +80,7 @@ class TaskQueue:
                     self.log(logging.ERROR, "Error happened in task {uuid}, but NO handler set.\n{error}".format(
                         error=traceback.format_exc(), uuid=task.UUID))
             finally:
+                self.log(logging.INFO,"There are still {num} tasks waiting.".format(num=len(self._putters)))
                 self.task_done(str(UUID))
 
         self._queue.update(

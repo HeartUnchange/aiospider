@@ -22,8 +22,6 @@ _Request = namedtuple(
     "Request", ["method", "url", "header", "data", "callback"])
 
 
-
-
 def Request(method, url, header=DEFAULT_HEADER, data=None, callback=None):
     return _Request(method, url, header, data, callback)
 
@@ -209,8 +207,11 @@ class Spider:
                         await callback(resp)
                     else:
                         self.loop.call_soon_threadsafe(callback, resp)
+                    self.log(logging.INFO, "Request [{method}] `{url}` finishend.(There are still {num})".format(
+                        method=request.method, url=request.url), num=len(self.pending))
             except Exception as e:
-                self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(error=traceback.format_exc(),url=request.url, method=request.method))
+                self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(
+                    error=traceback.format_exc(), url=request.url, method=request.method))
         else:
             self.log(logging.WARNING, "Callback for request [{method}] `{url}` is not callable. Request is ignored.".format(
                 url=request.url, method=request.method))
