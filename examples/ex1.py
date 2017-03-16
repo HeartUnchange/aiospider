@@ -40,7 +40,6 @@ with Spider() as ss:
         category = js.get("title", "")
         if not category:
             return
-        ss.log(str(js.get("Count", 0)), response.url)
         confirmDir(category)
         # emojis contained by `picList`
         for pic in js.get("picList", []):

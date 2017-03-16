@@ -207,8 +207,6 @@ class Spider:
                         await callback(resp)
                     else:
                         self.loop.call_soon_threadsafe(callback, resp)
-                    self.log(logging.INFO, "Request [{method}] `{url}` finishend.(There are still {num})".format(
-                        method=request.method, url=request.url), num=len(self.pending))
             except Exception as e:
                 self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(
                     error=traceback.format_exc(), url=request.url, method=request.method))
@@ -226,10 +224,15 @@ class Spider:
                         break
                     fd.write(chunk)
             self.log(logging.INFO, "Target `{src}` download to {dst}".format(src=resp.url, dst=dst))
-        self.log(logging.INFO, "Add download task : {src}".format(src=src))
-        await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
         '''
+        #self.log(logging.INFO, "Add download task : {src}".format(src=src))
+        #await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
+        """
+        Unfortunately, TaskQueue doesn't work well when there too many download tasks.
+        So back to raw request.
+        """
         self.add_download(src, dst)
+        #await self.request_with_callback(Request("GET", src, callback=save))
 
     def add_download(self, src, dst):
         '''
@@ -238,7 +241,7 @@ class Spider:
         async def save(resp, dst=dst):
             with open(dst, "wb") as fd:
                 while True:
-                    chunk = await resp.content.read()
+                    chunk = await resp.content.read(self.config["chunk_size"])
                     if not chunk:
                         break
                     fd.write(chunk)
