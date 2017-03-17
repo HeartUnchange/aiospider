@@ -37,7 +37,7 @@ with Spider() as ss:
         js = await response.json()
         if not js.get("Count", 0):
             return
-        category = js.get("title", "")
+        category = js.get("title", "").strip() # name of folder no blank space
         if not category:
             return
         confirmDir(category)

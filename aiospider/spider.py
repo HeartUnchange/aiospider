@@ -110,6 +110,7 @@ class Spider:
         if not self.session.closed:
             self.session.close()
         if not self.loop.is_closed():
+            self.loop.stop()
             self.loop.close()
 
     def log(self, lvl, msg):
@@ -207,6 +208,8 @@ class Spider:
                         await callback(resp)
                     else:
                         self.loop.call_soon_threadsafe(callback, resp)
+                    self.log(logging.INFO, "Request [{method}] `{url}` finishend.(There are still {num})".format(
+                        method=request.method, url=request.url, num=self.pending.qsize() ))
             except Exception as e:
                 self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(
                     error=traceback.format_exc(), url=request.url, method=request.method))
@@ -229,7 +232,7 @@ class Spider:
         #await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
         """
         Unfortunately, TaskQueue doesn't work well when there too many download tasks.
-        So back to raw request.
+        So raw request may be better.
         """
         self.add_download(src, dst)
         #await self.request_with_callback(Request("GET", src, callback=save))
