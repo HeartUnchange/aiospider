@@ -102,16 +102,23 @@ class Spider:
         self.visited = set()
         # you cannot call method `start` twice.
         self.running = False
+        # active tasks
+        self.active = []
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self._cancel()
         if not self.session.closed:
             self.session.close()
         if not self.loop.is_closed():
             self.loop.stop()
             self.loop.close()
+
+    def _cancel(self):
+        for task in self.active:
+            task.cancel()
 
     def log(self, lvl, msg):
         self.logger.log(lvl, msg)
@@ -209,7 +216,7 @@ class Spider:
                     else:
                         self.loop.call_soon_threadsafe(callback, resp)
                     self.log(logging.INFO, "Request [{method}] `{url}` finishend.(There are still {num})".format(
-                        method=request.method, url=request.url, num=self.pending.qsize() ))
+                        method=request.method, url=request.url, num=self.pending.qsize()))
             except Exception as e:
                 self.log(logging.ERROR, "Error happened in request [{method}] `{url}`, Request is ignored.\n{error}".format(
                     error=traceback.format_exc(), url=request.url, method=request.method))
@@ -229,13 +236,14 @@ class Spider:
             self.log(logging.INFO, "Target `{src}` download to {dst}".format(src=resp.url, dst=dst))
         '''
         #self.log(logging.INFO, "Add download task : {src}".format(src=src))
-        #await self.download_pending.put(makeTask(self.request_with_callback, Request("GET", src, callback=save)))
+        # await self.download_pending.put(makeTask(self.request_with_callback,
+        # Request("GET", src, callback=save)))
         """
         Unfortunately, TaskQueue doesn't work well when there too many download tasks.
         So raw request may be better.
         """
         self.add_download(src, dst)
-        #await self.request_with_callback(Request("GET", src, callback=save))
+        # await self.request_with_callback(Request("GET", src, callback=save))
 
     def add_download(self, src, dst):
         '''
@@ -255,15 +263,14 @@ class Spider:
             makeTask(self.request_with_callback, Request("GET", src, callback=save)))
 
     async def __start(self):
-        workers = [asyncio.ensure_future(self.load(), loop=self.loop)
-                   for _ in range(self.config["concurrent"])]
+        for _ in range(self.config["concurrent"]):
+            self.active.append(asyncio.ensure_future(
+                self.load(), loop=self.loop))
         self.log(
             logging.INFO, "Spider has been started. Waiting for all requests and download tasks to finish.")
         await self.pending.join()
         self.log(logging.INFO, "Requests have finished. Waiting for download task.")
         await self.download_pending.join()
-        for w in workers:
-            w.cancel()
 
     def start(self, urls, callbacks):
         if self.running:

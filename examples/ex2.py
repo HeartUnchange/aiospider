@@ -43,7 +43,7 @@ with Spider() as ss:
         _num = url[url.index("_") + 1:url.rindex(".")] if "_" in url else "1"
         name = _num + splitext(src)[1]
         ss.add_download(src, join(dic, name))
-        for p in pq('body > div.wrap > div.tag-page.l.oh > div.NewPages > ul > li'):
+        for p in pq('body > div.wrap > div.tag-page.l.oh > div.NewPages > ul > li > a'):
             element = PyQuery(p)
             nnew = element.attr("href")
             if nnew:
