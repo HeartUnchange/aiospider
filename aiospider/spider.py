@@ -114,6 +114,7 @@ class Spider:
             self.session.close()
         if not self.loop.is_closed():
             self.loop.stop()
+            self.loop.run_forever()
             self.loop.close()
 
     def _cancel(self):
