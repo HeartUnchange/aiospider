@@ -13,7 +13,7 @@ for w in workers:
     w.cancel()
 ```
 
-## Usage:
+## Install:
 ```
     python3 setup.py install
     pip install -r requirements.txt
