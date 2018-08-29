@@ -92,7 +92,7 @@ class Spider:
         '''
         The reasons that only sipder's download_pending uses TaskQueue are:
          1. TaskQueue is still not stable.
-         2. When there are too many request waited to send, it has to keep many contexts for each waiting request 
+         2. When there are too many request waited to send, it has to keep many contexts for each waiting request
             including the method request_with_callback. So the request queue still use asyncio.Queue.
         '''
         self.pending = asyncio.Queue()
@@ -111,7 +111,7 @@ class Spider:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._cancel()
         if not self.session.closed:
-            self.session.close()
+            self.loop.run_until_complete(self.session.close())
         if not self.loop.is_closed():
             self.loop.stop()
             self.loop.run_forever()
