@@ -28,7 +28,7 @@ def confirm_dir(base, *path):
     return ph
 
 
-with Spider() as ss:
+with Spider(config={"download_concurrent":2}) as ss:
     swd = confirm_dir(os.path.abspath(os.path.dirname(__file__)), "ebooks")
 
     async def parse_ebook_detail(response: aiohttp.ClientResponse):
