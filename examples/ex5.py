@@ -31,12 +31,15 @@ def confirm_dir(base, *path):
 with Spider() as ss:
     swd = confirm_dir(os.path.abspath(os.path.dirname(__file__)), "ebooks")
 
-
     async def parse_ebook_detail(response: aiohttp.ClientResponse):
         content = await response.text()
-        downloadTargets = re.findall(string=content, pattern=".*<a href=\"(.*pdf|.*epub)\">.*")
-        for download in downloadTargets:
-            name = os.path.basename(download)
+        _name = response.url.path.replace("/", "")
+        downloadTargets = re.findall(string=content, pattern=".*<a href=\"(.*)\"><span.*>(Download PDF|Download ePub)</span>.*")
+        for download, _format in downloadTargets:
+            if _format == "Download PDF":
+                name = _name+".pdf"
+            elif _format == "Download ePub":
+                name = _name+".epub"
             # print(os.path.join(swd, urllib.parse.unquote_plus(name)))
             ss.add_download(download, os.path.join(swd, urllib.parse.unquote_plus(name)))
 
